@@ -15,6 +15,7 @@ KERNELNAME:=Image dtbs
 
 DEFAULT_PACKAGES += \
 	kmod-gpio-button-hotplug \
-	uboot-envtools
+	uboot-envtools \
+	kmod-qca-nss-dp swconfig
 
 $(eval $(call BuildTarget))
