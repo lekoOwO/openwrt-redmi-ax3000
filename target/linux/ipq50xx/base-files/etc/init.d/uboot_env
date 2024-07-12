@@ -6,7 +6,8 @@ START=99
 
 boot() {
 	case $(board_name) in
-		redmi,ax3000)
+		redmi,ax3000|\
+		xiaomi,cr881x)
 			fw_printenv >/dev/null || return 0
 
 			local flag_ota_reboot="$(fw_printenv flag_ota_reboot | cut -d'=' -f2)"

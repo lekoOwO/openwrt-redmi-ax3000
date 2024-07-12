@@ -54,4 +54,21 @@ define Device/redmi_ax3000
 endef
 TARGET_DEVICES += redmi_ax3000
 
+define Device/xiaomi_cr881x
+  $(call Device/FitImage)
+  $(call Device/UbiFit)
+  SOC := ipq5018
+  DEVICE_VENDOR := Xiaomi
+  DEVICE_MODEL := CR881x
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  DEVICE_DTS_CONFIG := config@mp03.3
+  IMAGES := nand-factory.ubi
+  DEVICE_PACKAGES := \
+	ath11k-firmware-ipq5018 \
+	ath11k-firmware-qcn6122 \
+	ipq-wifi-xiaomi_cr881x
+endef
+TARGET_DEVICES += xiaomi_cr881x
+
 $(eval $(call BuildImage))

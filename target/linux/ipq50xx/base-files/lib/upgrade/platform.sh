@@ -6,7 +6,8 @@ RAMFS_COPY_DATA='/etc/fw_env.config /var/lock/fw_printenv.lock'
 platform_check_image() {
 	local board=$(board_name)
 	case $board in
-		redmi,ax3000)
+		redmi,ax3000|\
+		xiaomi,cr881x)
 			mi_dualboot_check_image "$1"
 			return $?
 			;;
@@ -20,7 +21,8 @@ platform_check_image() {
 platform_do_upgrade() {
 	local board=$(board_name)
 	case $board in
-		redmi,ax3000)
+		redmi,ax3000|\
+		xiaomi,cr881x)
 			mi_dualboot_do_upgrade "$1"
 			;;
 		*)

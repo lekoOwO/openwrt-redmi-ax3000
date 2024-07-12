@@ -9,7 +9,8 @@ touch /etc/config/ubootenv
 
 board=$(board_name)
 case "$board" in
-	redmi,ax3000)
+	redmi,ax3000|\
+	xiaomi,cr881x)
 		ubootenv_add_uci_config "/dev/mtd10" "0x0" "0x10000" "0x20000"
 		;;
 esac

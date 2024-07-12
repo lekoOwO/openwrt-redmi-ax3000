@@ -12,6 +12,12 @@ ipq50xx_setup_interfaces()
 				"1:lan:1" "2:lan:2" "3:lan:3" \
 				"4:wan"
 			;;
+		xiaomi,cr881x)
+			ucidef_add_switch "switch0" \
+				"8u@eth1" "4u@eth0" \
+				"0:lan:1" "1:lan:2" "2:lan:3" \
+				"3:wan"
+			;;
 	esac
 }
 
