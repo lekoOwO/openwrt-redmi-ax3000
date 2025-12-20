@@ -211,7 +211,7 @@ platform_do_upgrade() {
 		remove_oem_ubi_volume ubi_rootfs
 		nand_do_upgrade "$1"
 		;;
-	xiaomi,ax6000)
+	xiaomi,ax3000)
 		# Make sure that UART is enabled
 		fw_setenv boot_wait on
 		fw_setenv uart_en 1
@@ -222,9 +222,9 @@ platform_do_upgrade() {
 		fw_setenv flag_boot_success 1
 		fw_setenv flag_try_sys1_failed 8
 		
-		# Kernel and rootfs are placed in 2 different UBI
-		CI_KERN_UBIPART="ubi_kernel"
-		CI_ROOT_UBIPART="rootfs"
+		CI_UBIPART="rootfs"
+		CI_KERNPART="kernel"
+		CI_ROOTPART="ubi_rootfs"
 		nand_do_upgrade "$1"
 		;;
 	xiaomi,ax6000)
