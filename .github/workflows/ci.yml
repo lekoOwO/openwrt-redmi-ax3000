@@ -30,7 +30,7 @@ jobs:
           import os
           import json
 
-          EXCLUDE = {'.git', '.github', 'index.html'}
+          EXCLUDE = {'.git', '.github', 'index.html', '.nojekyll', 'CNAME'}
           
           def build_tree(path):
               node = {"name": os.path.basename(path) or "Root", "type": "folder", "children": []}
@@ -48,7 +48,12 @@ jobs:
                       node["children"].append(build_tree(full_path))
                   else:
                       size = os.path.getsize(full_path)
-                      size_str = f"{size / 1024:.1f} KB" if size < 1024*1024 else f"{size / (1024*1024):.1f} MB"
+                      # 2. 使用 \u00A0 (不換行空格) 確保數字與單位不分離
+                      if size < 1024 * 1024:
+                          size_str = f"{size / 1024:.1f}\u00A0KB"
+                      else:
+                          size_str = f"{size / (1024 * 1024):.1f}\u00A0MB"
+                          
                       node["children"].append({
                           "name": item,
                           "type": "file",
@@ -71,7 +76,7 @@ jobs:
               <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
               <style>
                   body { background-color: #0f172a; }
-                  .col-name { width: auto; }
+                  .col-name { width: auto; min-width: 200px; }
                   .col-shrink { width: 1%; white-space: nowrap; }
               </style>
           </head>
@@ -81,9 +86,7 @@ jobs:
                       <h1 class="text-2xl font-bold text-white tracking-tight">
                           <i class="fa-solid fa-server mr-2 text-indigo-400"></i>File Server
                       </h1>
-                      <div class="flex items-center gap-4">
-                        <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 font-mono text-sm">v2.4 Ultra-Wide</span>
-                      </div>
+                      <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 font-mono text-sm">v2.5 Stable</span>
                   </div>
 
                   <div class="bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
@@ -155,8 +158,8 @@ jobs:
                                   '<i class="fa-solid fa-folder fa-fw text-amber-400 mr-4 text-xl flex-shrink-0"></i>' +
                                   '<span class="text-slate-200 font-medium">' + item.name + '</span>' +
                                   '</td>' +
-                                  '<td class="px-6 py-4 text-sm text-slate-500 font-mono">--</td>' +
-                                  '<td class="px-6 py-4 text-right text-slate-500 text-xs italic">Folder</td>' +
+                                  '<td class="px-6 py-4 text-sm text-slate-500 font-mono whitespace-nowrap">--</td>' +
+                                  '<td class="px-6 py-4 text-right text-slate-500 text-xs italic whitespace-nowrap">Folder</td>' +
                                   '</tr>';
                           } else {
                               const iconClass = getFileIcon(item.name);
@@ -165,8 +168,8 @@ jobs:
                                   '<i class="' + iconClass + ' fa-fw mr-4 text-lg flex-shrink-0"></i>' +
                                   '<span class="text-slate-300">' + item.name + '</span>' +
                                   '</td>' +
-                                  '<td class="px-6 py-4 text-sm text-slate-500 font-mono">' + item.size + '</td>' +
-                                  '<td class="px-6 py-4 text-right">' +
+                                  '<td class="px-6 py-4 text-sm text-slate-500 font-mono whitespace-nowrap">' + item.size + '</td>' +
+                                  '<td class="px-6 py-4 text-right whitespace-nowrap">' +
                                   '<a href="' + item.path + '" download class="inline-flex items-center px-6 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition text-xs font-bold uppercase tracking-wider shadow-lg">' +
                                   'Download</a>' +
                                   '</td></tr>';
@@ -192,5 +195,5 @@ jobs:
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "docs: switch to ultra-wide layout [skip ci]"
+          commit_message: "docs: fix file exclusion and size wrapping [skip ci]"
           branch: gh-pages
