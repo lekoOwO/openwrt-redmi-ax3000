@@ -1,0 +1,203 @@
+name: Generate File Browser
+
+on:
+  push:
+    branches:
+      - gh-pages
+    paths-ignore:
+      - 'index.html'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Generate index.html
+        run: |
+          python << 'EOF'
+          import os
+          import json
+
+          EXCLUDE = {'.git', '.github', 'index.html'}
+          
+          def build_tree(path):
+              node = {"name": os.path.basename(path) or "Root", "type": "folder", "children": []}
+              try:
+                  items = os.listdir(path)
+              except OSError:
+                  return node
+
+              for item in items:
+                  if item in EXCLUDE: continue
+                  full_path = os.path.join(path, item)
+                  rel_path = os.path.relpath(full_path, '.')
+                  
+                  if os.path.isdir(full_path):
+                      node["children"].append(build_tree(full_path))
+                  else:
+                      size = os.path.getsize(full_path)
+                      size_str = f"{size / 1024:.1f} KB" if size < 1024*1024 else f"{size / (1024*1024):.1f} MB"
+                      node["children"].append({
+                          "name": item,
+                          "type": "file",
+                          "path": rel_path,
+                          "size": size_str
+                      })
+              node["children"].sort(key=lambda x: (x["type"] != "folder", x["name"].lower()))
+              return node
+
+          tree_data = build_tree('.')
+
+          html_template = """
+          <!DOCTYPE html>
+          <html lang="zh-TW" class="dark">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>檔案瀏覽器</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+              <style>
+                  body { background-color: #0f172a; } /* Slate-900 */
+              </style>
+          </head>
+          <body class="text-slate-200 min-h-screen">
+              <div class="max-w-5xl mx-auto py-10 px-4">
+                  <div class="mb-6 flex items-center justify-between">
+                      <h1 class="text-2xl font-bold text-white tracking-tight">
+                          <i class="fa-solid fa-terminal mr-2 text-indigo-400"></i>File Server
+                      </h1>
+                      <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700">v2.0 Dark</span>
+                  </div>
+
+                  <div class="bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
+                      <nav class="bg-slate-800/50 px-6 py-4 border-b border-slate-700 flex items-center text-sm font-medium text-slate-400" id="breadcrumbs">
+                      </nav>
+
+                      <div class="overflow-x-auto">
+                          <table class="w-full text-left">
+                              <thead class="bg-slate-900/50 text-xs uppercase text-slate-500">
+                                  <tr>
+                                      <th class="px-6 py-3 font-bold">名稱</th>
+                                      <th class="px-6 py-3 font-bold">大小</th>
+                                      <th class="px-6 py-3 font-bold text-right">動作</th>
+                                  </tr>
+                              </thead>
+                              <tbody id="file-list" class="divide-y divide-slate-700/50">
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+              </div>
+
+              <script>
+                  const fileTree = ${TREE_JSON};
+                  let currentPath = []; 
+
+                  function getFolderByPath(pathArray) {
+                      let current = fileTree;
+                      for (const name of pathArray) {
+                          current = current.children.find(c => c.name === name);
+                      }
+                      return current;
+                  }
+                  
+                  function getFileIcon(filename) {
+                      const name = filename.toLowerCase();
+                      if (name.endsWith('.gz')) return 'fa-solid fa-file-zipper text-orange-400';
+                      if (name.endsWith('.ipk')) return 'fa-solid fa-box-open text-sky-400';
+                      if (name.endsWith('.json')) return 'fa-solid fa-file-code text-amber-300';
+                      if (name.endsWith('.manifest')) return 'fa-solid fa-file-signature text-emerald-400';
+                      if (name.endsWith('.html')) return 'fa-brands fa-html5 text-orange-500';
+                      return 'fa-regular fa-file text-slate-500';
+                  }
+
+                  function render() {
+                      const listElement = document.getElementById('file-list');
+                      const breadcrumbs = document.getElementById('breadcrumbs');
+                      const currentFolder = getFolderByPath(currentPath);
+
+                      let bcHtml = `<button onclick="goToPath([])" class="hover:text-white transition flex items-center"><i class="fa-solid fa-house-chimney mr-2"></i>Root</button>`;
+                      let tempPath = [];
+                      currentPath.forEach((name) => {
+                          tempPath.push(name);
+                          const pathCopy = [...tempPath];
+                          bcHtml += ` <span class="mx-2 text-slate-600">/</span> <button onclick='goToPath(\${JSON.stringify(pathCopy)})' class="hover:text-white transition">\${name}</button>`;
+                      });
+                      breadcrumbs.innerHTML = bcHtml;
+
+                      let listHtml = '';
+                      if (currentPath.length > 0) {
+                          listHtml += `
+                              <tr onclick="goBack()" class="cursor-pointer hover:bg-slate-700/30 transition">
+                                  <td class="px-6 py-4 text-indigo-400 font-bold flex items-center" colspan="3">
+                                      <i class="fa-solid fa-chevron-left mr-3"></i> .. (回上一層)
+                                  </td>
+                              </tr>
+                          `;
+                      }
+
+                      currentFolder.children.forEach(item => {
+                          if (item.type === 'folder') {
+                              listHtml += `
+                                  <tr onclick='enterFolder("\${item.name}")' class="cursor-pointer hover:bg-slate-700/50 transition">
+                                      <td class="px-6 py-4 flex items-center">
+                                          <i class="fa-solid fa-folder text-amber-400 mr-4 text-xl"></i>
+                                          <span class="text-slate-200 font-medium">\${item.name}</span>
+                                      </td>
+                                      <td class="px-6 py-4 text-sm text-slate-500">--</td>
+                                      <td class="px-6 py-4 text-right text-slate-500 text-xs italic">Folder</td>
+                                  </tr>
+                              `;
+                          } else {
+                              const iconClass = getFileIcon(item.name);
+                              listHtml += `
+                                  <tr class="hover:bg-slate-700/30 transition">
+                                      <td class="px-6 py-4 flex items-center">
+                                          <i class="\${iconClass} mr-4 text-lg"></i>
+                                          <span class="text-slate-300">\${item.name}</span>
+                                      </td>
+                                      <td class="px-6 py-4 text-sm text-slate-500 font-mono">\${item.size}</td>
+                                      <td class="px-6 py-4 text-right">
+                                          <a href="\${item.path}" download class="inline-flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded transition text-xs font-bold uppercase tracking-wider">
+                                              Download
+                                          </a>
+                                      </td>
+                                  </tr>
+                              `;
+                          }
+                      });
+                      listElement.innerHTML = listHtml;
+                  }
+
+                  function enterFolder(name) { currentPath.push(name); render(); }
+                  function goBack() { currentPath.pop(); render(); }
+                  function goToPath(p) { currentPath = p; render(); }
+
+                  render();
+              </script>
+          </body>
+          </html>
+          """
+          
+          with open('index.html', 'w', encoding='utf-8') as f:
+              f.write(html_template.replace('${TREE_JSON}', json.dumps(tree_data)))
+          EOF
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update file browser"
+          branch: gh-pages
