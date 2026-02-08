@@ -7,26 +7,33 @@
     <title>檔案瀏覽器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>body { background-color: #0f172a; }</style>
+    <style>
+        body { background-color: #0f172a; }
+        .col-name { width: auto; }
+        .col-shrink { width: 1%; white-space: nowrap; }
+    </style>
 </head>
-<body class="text-slate-200 min-h-screen">
-    <div class="max-w-5xl mx-auto py-10 px-4">
+<body class="text-slate-200 min-h-screen font-sans">
+    <div class="max-w-[95%] mx-auto py-8 px-4">
         <div class="mb-6 flex items-center justify-between">
             <h1 class="text-2xl font-bold text-white tracking-tight">
-                <i class="fa-solid fa-terminal mr-2 text-indigo-400"></i>File Server
+                <i class="fa-solid fa-server mr-2 text-indigo-400"></i>File Server
             </h1>
-            <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700">v2.2 Fixed</span>
+            <div class="flex items-center gap-4">
+              <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700 font-mono text-sm">v2.4 Ultra-Wide</span>
+            </div>
         </div>
 
         <div class="bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700">
-            <nav class="bg-slate-800/50 px-6 py-4 border-b border-slate-700 flex items-center text-sm font-medium text-slate-400" id="breadcrumbs"></nav>
+            <nav class="bg-slate-900/40 px-6 py-4 border-b border-slate-700 flex items-center text-sm font-medium text-slate-400" id="breadcrumbs"></nav>
+            
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
-                    <thead class="bg-slate-900/50 text-xs uppercase text-slate-500 border-b border-slate-700">
+                    <thead class="bg-slate-900/60 text-xs uppercase text-slate-500 border-b border-slate-700">
                         <tr>
-                            <th class="px-6 py-3 font-bold">名稱</th>
-                            <th class="px-6 py-3 font-bold whitespace-nowrap">大小</th>
-                            <th class="px-6 py-3 font-bold text-right whitespace-nowrap">動作</th>
+                            <th class="px-6 py-4 font-bold col-name">名稱</th>
+                            <th class="px-6 py-4 font-bold col-shrink">大小</th>
+                            <th class="px-6 py-4 font-bold text-right col-shrink">動作</th>
                         </tr>
                     </thead>
                     <tbody id="file-list" class="divide-y divide-slate-700/50"></tbody>
@@ -62,51 +69,45 @@
             const breadcrumbs = document.getElementById('breadcrumbs');
             const currentFolder = getFolderByPath(currentPath);
 
-            let bcHtml = `<button onclick="goToPath([])" class="hover:text-white transition flex items-center"><i class="fa-solid fa-house-chimney mr-2"></i>Root</button>`;
+            let bcHtml = '<button onclick="goToPath([])" class="hover:text-white transition flex items-center"><i class="fa-solid fa-house-user mr-2"></i>Root</button>';
             let tempPath = [];
             currentPath.forEach((name) => {
                 tempPath.push(name);
                 const pathCopy = [...tempPath];
-                bcHtml += ` <span class="mx-2 text-slate-600">/</span> <button onclick='goToPath(${JSON.stringify(pathCopy)})' class="hover:text-white transition">${name}</button>`;
+                bcHtml += ' <span class="mx-2 text-slate-600">/</span> <button onclick=\'goToPath(' + JSON.stringify(pathCopy) + ')\' class="hover:text-white transition">' + name + '</button>';
             });
             breadcrumbs.innerHTML = bcHtml;
 
             let listHtml = '';
             if (currentPath.length > 0) {
-                listHtml += `
-                    <tr onclick="goBack()" class="cursor-pointer hover:bg-slate-700/30 transition">
-                        <td class="px-6 py-4 text-indigo-400 font-bold flex items-center" colspan="3">
-                            <i class="fa-solid fa-chevron-left fa-fw mr-3"></i> .. (回上一層)
-                        </td>
-                    </tr>`;
+                listHtml += '<tr onclick="goBack()" class="cursor-pointer hover:bg-slate-700/30 transition">' +
+                            '<td class="px-6 py-4 text-indigo-400 font-bold" colspan="3">' +
+                            '<i class="fa-solid fa-arrow-turn-up fa-fw mr-3"></i> .. (回上一層)' +
+                            '</td></tr>';
             }
 
             currentFolder.children.forEach(item => {
                 if (item.type === 'folder') {
-                    listHtml += `
-                        <tr onclick='enterFolder("${item.name}")' class="cursor-pointer hover:bg-slate-700/50 transition">
-                            <td class="px-6 py-4 flex items-center">
-                                <i class="fa-solid fa-folder fa-fw text-amber-400 mr-4 text-xl"></i>
-                                <span class="text-slate-200 font-medium truncate">${item.name}</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">--</td>
-                            <td class="px-6 py-4 text-right text-slate-500 text-xs italic whitespace-nowrap">Folder</td>
-                        </tr>`;
+                    listHtml += '<tr onclick=\'enterFolder("' + item.name + '")\' class="cursor-pointer hover:bg-slate-700/50 transition">' +
+                        '<td class="px-6 py-4 flex items-center">' +
+                        '<i class="fa-solid fa-folder fa-fw text-amber-400 mr-4 text-xl flex-shrink-0"></i>' +
+                        '<span class="text-slate-200 font-medium">' + item.name + '</span>' +
+                        '</td>' +
+                        '<td class="px-6 py-4 text-sm text-slate-500 font-mono">--</td>' +
+                        '<td class="px-6 py-4 text-right text-slate-500 text-xs italic">Folder</td>' +
+                        '</tr>';
                 } else {
                     const iconClass = getFileIcon(item.name);
-                    listHtml += `
-                        <tr class="hover:bg-slate-700/30 transition">
-                            <td class="px-6 py-4 flex items-center">
-                                <i class="${iconClass} fa-fw mr-4 text-lg"></i>
-                                <span class="text-slate-300 truncate">${item.name}</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-slate-500 font-mono whitespace-nowrap">${item.size}</td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <a href="${item.path}" download class="inline-flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded transition text-xs font-bold uppercase tracking-wider">
-                                    Download
-                                </a>
-                            </td>
-                        </tr>`;
+                    listHtml += '<tr class="hover:bg-slate-700/30 transition">' +
+                        '<td class="px-6 py-4 flex items-center">' +
+                        '<i class="' + iconClass + ' fa-fw mr-4 text-lg flex-shrink-0"></i>' +
+                        '<span class="text-slate-300">' + item.name + '</span>' +
+                        '</td>' +
+                        '<td class="px-6 py-4 text-sm text-slate-500 font-mono">' + item.size + '</td>' +
+                        '<td class="px-6 py-4 text-right">' +
+                        '<a href="' + item.path + '" download class="inline-flex items-center px-6 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition text-xs font-bold uppercase tracking-wider shadow-lg">' +
+                        'Download</a>' +
+                        '</td></tr>';
                 }
             });
             listElement.innerHTML = listHtml;
