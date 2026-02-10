@@ -1,12 +1,14 @@
-name: CI
+name: Build OpenWrt for Redmi AX3000
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'ipq50xx-mainline-kernel-5.15-openwrt-23.05'
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Free disk space
         run: |
@@ -19,7 +21,17 @@ jobs:
             git libncurses5-dev libssl-dev python3-distutils rsync unzip zlib1g-dev
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Rewrite feeds to github.com
+        run: |
+          sed -i \
+            -e 's|https://git.openwrt.org/feed/packages.git|https://github.com/openwrt/packages.git|g' \
+            -e 's|https://git.openwrt.org/project/luci.git|https://github.com/openwrt/luci.git|g' \
+            -e 's|https://git.openwrt.org/feed/routing.git|https://github.com/openwrt/routing.git|g' \
+            -e 's|https://git.openwrt.org/feed/telephony.git|https://github.com/openwrt/telephony.git|g' \
+            -e 's|https://git.openwrt.org/feed/video.git|https://github.com/openwrt/video.git|g' \
+            feeds.conf.default
 
       - name: Hook the openwrt_core URL for opkg
         run: |
@@ -52,7 +64,26 @@ jobs:
             CONFIG_ALL_NONSHARED=y
             CONFIG_REPRODUCIBLE_DEBUG_INFO=y
 
+            CONFIG_PACKAGE_coreutils-sort=y
+            CONFIG_PACKAGE_luci-lib-fs=y
+            CONFIG_VSFTPD_USE_UCI_SCRIPTS=y
+            CONFIG_PACKAGE_luci-proto-batman-adv=y
+            CONFIG_PACKAGE_wpad-wolfssl=y
+            CONFIG_PACKAGE_wpad-basic-mbedtls=n
             CONFIG_PACKAGE_luci=y
+            CONFIG_PACKAGE_luci-theme-bootstrap=y
+            CONFIG_PACKAGE_uhttpd=y
+            CONFIG_PACKAGE_luci-mod-admin-full=y
+            CONFIG_PACKAGE_luci-base=y
+            CONFIG_PACKAGE_luci-lib-nixio=y
+            CONFIG_PACKAGE_luci-lib-ip=y
+            CONFIG_PACKAGE_rpcd=y
+            CONFIG_PACKAGE_uhttpd-mod-ubus=y
+            CONFIG_PACKAGE_luci-app-opkg=y
+            CONFIG_PACKAGE_luci-app-firewall=y
+            CONFIG_PACKAGE_luci-proto-ppp=y
+            CONFIG_PACKAGE_luci-proto-ipv6=y
+
           EOF
           make defconfig
 
@@ -70,28 +101,28 @@ jobs:
 
       - name: Build all
         run: |
-          make -j$(nproc) IGNORE_ERRORS=1
+          make -j$(nproc) V=s IGNORE_ERRORS=1
 
       - name: Upload bin to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bin-ipq50xx-arm
           path: bin/targets/ipq50xx/arm/*
 
       - name: Upload dl to artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dl
           path: dl/*
 
   gh-pages:
     needs: [ build ]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
       - name: Checkout gh-pages
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: 'gh-pages'
           ref: 'gh-pages'
@@ -113,7 +144,7 @@ jobs:
           git rebase --continue
 
       - name: Download bin from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bin-ipq50xx-arm
           path: bin/
@@ -137,21 +168,21 @@ jobs:
 
   release:
     needs: [ build ]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download dl from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dl
           path: dl/
 
       - name: Download bin from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: bin-ipq50xx-arm
           path: bin/targets/ipq50xx/arm/
