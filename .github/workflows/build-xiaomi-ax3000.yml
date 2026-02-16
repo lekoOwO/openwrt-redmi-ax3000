@@ -47,6 +47,12 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: Replace wpad-basic-wolfssl with wpad-wolfssl in Xiaomi AX3000 Device Packages
+        run: |
+          MK_FILE="./target/linux/qualcommax/image/ipq50xx.mk"
+          sed -i 's/wpad-basic-wolfssl/wpad-wolfssl/g' "$MK_FILE"
+          grep "wpad-wolfssl" "$MK_FILE"
+
       - name: Configure
         run: |
           cat <<EOF | sed -E 's/^  //' >.config
